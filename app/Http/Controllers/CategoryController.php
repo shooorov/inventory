@@ -76,7 +76,7 @@ class CategoryController extends Controller
                 if($category->image)
                     $nestedData['image'] = '<img src="'.url('public/images/category', $category->image).'" height="70" width="70">';
                 else
-                    $nestedData['image'] = '<img src="'.url('public/images/product/zummXD2dvAtI.png').'" height="80" width="80">';
+                    $nestedData['image'] = '<img src="'.url('images/product/zummXD2dvAtI.png').'" height="80" width="80">';
 
                 $nestedData['name'] = $category->name;
 
