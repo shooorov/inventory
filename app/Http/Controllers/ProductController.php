@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Keygen;
+use Keygen\Keygen;
 use App\Brand;
 use App\Category;
 use App\Unit;
@@ -13,14 +13,15 @@ use App\Supplier;
 use App\Product;
 use App\Product_Warehouse;
 use App\Product_Supplier;
-use Auth;
-use DNS1D;
+use Illuminate\Support\Facades\Auth;
+use Milon\Barcode\Facades\DNS1DFacade as DNS1D;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Illuminate\Validation\Rule;
-use DB;
+use Illuminate\Support\Facades\DB;
 use App\Variant;
 use App\ProductVariant;
+use Illuminate\Support\Facades\Session;
 
 class ProductController extends Controller
 {
@@ -74,7 +75,7 @@ class ProductController extends Controller
             $products =  Product::select('products.*')
                         ->with('category', 'brand', 'unit')
                         ->join('categories', 'products.category_id', '=', 'categories.id')
-                        ->leftjoin('brands', 'products.brand_id', '=', 'brands.id')
+                        ->leftJoin('brands', 'products.brand_id', '=', 'brands.id')
                         ->where([
                             ['products.name', 'LIKE', "%{$search}%"],
                             ['products.is_active', true]
@@ -99,7 +100,7 @@ class ProductController extends Controller
 
             $totalFiltered = Product::
                             join('categories', 'products.category_id', '=', 'categories.id')
-                            ->leftjoin('brands', 'products.brand_id', '=', 'brands.id')
+                            ->leftJoin('brands', 'products.brand_id', '=', 'brands.id')
                             ->where([
                                 ['products.name','LIKE',"%{$search}%"],
                                 ['products.is_active', true]
@@ -153,15 +154,17 @@ class ProductController extends Controller
                             <li>
                                 <button="type" class="btn btn-link view"><i class="fa fa-eye"></i> '.trans('file.View').'</button>
                             </li>';
-                if(in_array("products-edit", $request['all_permission']))
+                if(in_array("products-edit", $request->all_permission))
                     $nestedData['options'] .= '<li>
                             <a href="'.route('products.edit', $product->id).'" class="btn btn-link"><i class="fa fa-edit"></i> '.trans('file.edit').'</a>
                         </li>';
-                if(in_array("products-delete", $request['all_permission']))
-                    $nestedData['options'] .= \Form::open(["route" => ["products.destroy", $product->id], "method" => "DELETE"] ).'
+                if(in_array("products-delete", $request->all_permission))
+                    $nestedData['options'] .= '<form action="'.route('products.destroy', $product->id).'" method="POST">
+                            <input type="hidden" name="_method" value="DELETE">
+                            <input type="hidden" name="_token" value="'.csrf_token().'">
                             <li>
                               <button type="submit" class="btn btn-link" onclick="return confirmDelete()"><i class="fa fa-trash"></i> '.trans("file.delete").'</button> 
-                            </li>'.\Form::close().'
+                            </li></form>
                         </ul>
                     </div>';
                 // data for product details by one click
@@ -291,7 +294,7 @@ class ProductController extends Controller
                 }
             }
         }
-        \Session::flash('create_message', 'Product created successfully');
+        Session::flash('create_message', 'Product created successfully');
     }
 
     public function edit($id)
@@ -315,8 +318,8 @@ class ProductController extends Controller
 
     public function updateProduct(Request $request)
     {
-        if(!env('USER_VERIFIED')) {
-            \Session::flash('not_permitted', 'This feature is disable for demo!');
+        if(!env('USER_VERIFIED', false)) {
+            Session::flash('not_permitted', 'This feature is disable for demo!');
         }
         else {
             $this->validate($request, [
@@ -355,7 +358,6 @@ class ProductController extends Controller
                 $data['promotion'] = null;
 
             $data['product_details'] = str_replace('"', '@', $data['product_details']);
-            $data['product_details'] = $data['product_details'];
             if($data['starting_date'])
                 $data['starting_date'] = date('Y-m-d', strtotime($data['starting_date']));
             if($data['last_date'])
@@ -457,7 +459,7 @@ class ProductController extends Controller
                 }
             }
             $lims_product_data->update($data);
-            \Session::flash('edit_message', 'Product updated successfully');
+            Session::flash('edit_message', 'Product updated successfully');
         }
     }
 
@@ -469,7 +471,7 @@ class ProductController extends Controller
 
     public function search(Request $request)
     {
-        $product_code = explode(" ", $request['data']);
+        $product_code = explode(" ", $request->data);
         $lims_product_data = Product::where('code', $product_code[0])->first();
 
         $product[] = $lims_product_data->name;
@@ -536,7 +538,7 @@ class ProductController extends Controller
     public function limsProductSearch(Request $request)
     {
         $todayDate = date('Y-m-d');
-        $product_code = explode(" ", $request['data']);
+        $product_code = explode(" ", $request->data);
 
         $lims_product_data = Product::where('code', $product_code[0])->first();
         $product[] = $lims_product_data->name;
@@ -652,7 +654,7 @@ class ProductController extends Controller
 
     public function deleteBySelection(Request $request)
     {
-        $product_id = $request['productIdArray'];
+        $product_id = $request->productIdArray;
         foreach ($product_id as $id) {
             $lims_product_data = Product::findOrFail($id);
             $lims_product_data->is_active = false;
