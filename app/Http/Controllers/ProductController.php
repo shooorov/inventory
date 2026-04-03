@@ -1,4 +1,6 @@
 <?php
+/** @noinspection SpellCheckingInspection */
+// cSpell:disable
 
 namespace App\Http\Controllers;
 
